@@ -1,6 +1,7 @@
+{-# LANGUAGE ExistentialQuantification #-}
 module Evaluator.Primitives where
 
-import Control.Monad.Error (throwError, catchError)
+import Control.Monad.Except (throwError, catchError)
 import Control.Monad
 
 import Types.LispVal
@@ -57,8 +58,6 @@ isKindOf "string" [LispString _] = return $ LispBool True
 isKindOf "string" _ = return $ LispBool False
 isKindOf "number" [LispNumber _] = return $ LispBool True
 isKindOf "number" _ = return $ LispBool False
-
-
 
 
 

@@ -1,7 +1,7 @@
 module Parser where
 
 import Control.Monad
-import Control.Monad.Error (throwError)
+import Control.Monad.Except (throwError)
 
 import Types.LispVal
 import Error.LispError

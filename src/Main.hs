@@ -1,7 +1,7 @@
 module Main where
 
 import Control.Monad
-import Control.Monad.Error
+import Control.Monad.Except
 import System.Environment
 import Text.ParserCombinators.Parsec hiding ( spaces )
 
