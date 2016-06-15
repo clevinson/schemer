@@ -45,6 +45,7 @@ lispCase keyExpr (LispList clause : clauses) =
              else lispCase keyExpr clauses
   where
     unLispBool (LispBool b) = b
+    unLispBool _ = False
     eq x y = eqv [x, y]
     LispList datumList : conseq = clause
 lispCase _ _ = throwError $ Default "Bad form for `case`"

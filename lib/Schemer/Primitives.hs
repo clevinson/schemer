@@ -138,9 +138,14 @@ tupToArr :: (a,a) -> [a]
 tupToArr (a,b) = [a,b]
 
 equal :: [LispVal] -> ThrowsError LispVal
-equal [LispList l1, LispList l2] = do
-  lispBools <- mapM equal $ map tupToArr (zip l1 l2)
-  return $ LispBool $ and $ map (\(LispBool b) -> b) lispBools
+equal [LispList l1, LispList l2] =
+    do lispBools <- mapM equal $ map tupToArray (zip l1 l2)
+       return $ LispBool $ and $ map unLispBool lispBools
+  where
+    tupToArray (a,b) = [a,b]
+    unLispBool (LispBool b) = b
+    unLispBool _ = False
+
 
 equal [arg1, arg2] = do
   primitiveEquals <- liftM or $ mapM (unpackEquals arg1 arg2)
