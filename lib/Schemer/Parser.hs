@@ -1,10 +1,9 @@
-module Parser where
+module Schemer.Parser where
 
 import Control.Monad
 import Control.Monad.Except (throwError)
 
-import Types.LispVal
-import Error.LispError
+import Schemer.Types
 import Text.ParserCombinators.Parsec hiding ( spaces )
 
 symbol :: Parser Char
@@ -40,7 +39,7 @@ parseAtom = do first <- letter <|> symbol
                return $ case atom of
                           "#t" -> LispBool True
                           "#f" -> LispBool False
-                          otherwise -> LispAtom atom
+                          _ -> LispAtom atom
 
 parseNumber :: Parser LispVal
 parseNumber = liftM (LispNumber . read) $ many1 digit

@@ -1,10 +1,10 @@
-module Evaluator.Evaluator where
+module Schemer.Evaluator where
 
 import Control.Monad.Except (throwError)
+import Control.Monad ((>=>))
 
-import Types.LispVal
-import Error.LispError
-import Evaluator.Primitives
+import Schemer.Types
+import Schemer.Primitives
 
 
 eval :: LispVal -> ThrowsError LispVal
@@ -18,9 +18,9 @@ eval (LispList [LispAtom "if", pred, conseq, alt]) =
        case result of
          LispBool False -> eval alt
          LispBool True -> eval conseq
-         otherwise -> throwError $ TypeMismatch "Bool" pred
+         _ -> throwError $ TypeMismatch "Bool" pred
 eval (LispList (LispAtom "cond" : condExprs)) = cond condExprs
---eval (LispList (LispAtom "case" : caseExprs)) = lispCase condExprs
+eval (LispList (LispAtom "case" : keyExpr : clauses)) = lispCase keyExpr clauses
 eval (LispList (LispAtom func : args)) = mapM eval args >>= apply func
 eval badForm = throwError $ BadSpecialForm "Unrecognized special form" badForm
 
@@ -28,20 +28,26 @@ eval badForm = throwError $ BadSpecialForm "Unrecognized special form" badForm
 cond :: [LispVal] -> ThrowsError LispVal
 cond [LispList (LispAtom "else" : elseExpr)] = lastEval elseExpr
 cond (LispList (pred : conseq) : xs) = 
-    do result <- eval pred
+    eval pred >>= \result ->
        case result of
         LispBool False -> cond xs
         LispBool True -> lastEval conseq
-        otherwise -> throwError $ TypeMismatch "Bool" pred
-cond (x : xs) = throwError $ BadSpecialForm "Expected list with two elements" x
+        _ -> throwError $ TypeMismatch "Bool" result
+cond _ = throwError $ Default "Bad implementation of `cond`"
 
---lispCase :: [LispVal] -> ThrowsError LispVal
---lispCase (key : datums) = lispCaseH key datums
---
---lispCaseH :: LispVal -> [LispVal] -> ThrowsError LispVal
---lispCaseH expr [LispList (LispAtom "else" : elseExpr)] = lastEval elseExpr
---lispCaseH expr (clause : xs) =
---    do result <- (eqv (eval expr) (
+lispCase :: LispVal -> [LispVal] -> ThrowsError LispVal
+lispCase _ [LispList (LispAtom "else" : conseq)] = lastEval conseq
+lispCase keyExpr (LispList clause : clauses) =
+       eval keyExpr >>= \evaledKey ->
+           mapM (eval >=> eq evaledKey) datumList >>= \lispBools ->
+             if or (map unLispBool lispBools)
+             then lastEval conseq
+             else lispCase keyExpr clauses
+  where
+    unLispBool (LispBool b) = b
+    eq x y = eqv [x, y]
+    LispList datumList : conseq = clause
+lispCase _ _ = throwError $ Default "Bad form for `case`"
 
 
 lastEval :: [LispVal] -> ThrowsError LispVal

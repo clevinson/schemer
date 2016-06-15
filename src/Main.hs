@@ -1,14 +1,12 @@
 module Main where
 
 import Control.Monad
-import Control.Monad.Except
 import System.Environment
-import Text.ParserCombinators.Parsec hiding ( spaces )
 
-import Error.LispError
-import Types.LispVal
-import Parser
-import Evaluator.Evaluator
+
+import Schemer.Types
+import Schemer.Parser
+import Schemer.Evaluator
 
 main :: IO ()
 main = do args <- getArgs

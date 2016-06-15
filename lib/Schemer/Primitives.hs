@@ -1,11 +1,10 @@
 {-# LANGUAGE ExistentialQuantification #-}
-module Evaluator.Primitives where
+module Schemer.Primitives where
 
 import Control.Monad.Except (throwError, catchError)
 import Control.Monad
 
-import Types.LispVal
-import Error.LispError
+import Schemer.Types
 
 
 primitives :: [(String, [LispVal] -> ThrowsError LispVal)]
@@ -39,7 +38,8 @@ primitives = [("+", numericBinop (+)),
               ("eqv?", eqv),
               ("equal?", equal)]
 
-numericBinop op singleVal@[_] = throwError $ NumArgs 2 singleVal
+numericBinop :: (Integer -> Integer -> Integer) -> [LispVal] -> ThrowsError LispVal
+numericBinop _ singleVal@[_] = throwError $ NumArgs 2 singleVal
 numericBinop op params = mapM unpackNum params >>= return . LispNumber . foldl1 op
 
 unpackNum :: LispVal -> ThrowsError Integer
@@ -58,6 +58,7 @@ isKindOf "string" [LispString _] = return $ LispBool True
 isKindOf "string" _ = return $ LispBool False
 isKindOf "number" [LispNumber _] = return $ LispBool True
 isKindOf "number" _ = return $ LispBool False
+isKindOf badTest _ = throwError $ Default ("Bad test for kind: " ++ badTest)
 
 
 
@@ -68,8 +69,13 @@ boolBinop unpacker op args = if length args /= 2
                                      right <- unpacker $ args !! 1
                                      return $ LispBool $ left `op` right
 
+numBoolBinop :: (Integer -> Integer -> Bool) -> [LispVal] -> ThrowsError LispVal
 numBoolBinop = boolBinop unpackNum
+
+strBoolBinop :: (String -> String -> Bool) -> [LispVal] -> ThrowsError LispVal
 strBoolBinop = boolBinop unpackStr
+
+boolBoolBinop :: (Bool -> Bool -> Bool) -> [LispVal] -> ThrowsError LispVal
 boolBoolBinop = boolBinop unpackBool
 
 unpackStr :: LispVal -> ThrowsError String
@@ -83,14 +89,14 @@ unpackBool (LispBool b) = return b
 unpackBool notBool = throwError $ TypeMismatch "boolean" notBool
 
 car :: [LispVal] -> ThrowsError LispVal
-car [LispList (x:xs)] = return x
-car [LispDottedList (x:xs) _] = return x
+car [LispList (x:_)] = return x
+car [LispDottedList (x:_) _] = return x
 car [badArg] = throwError $ TypeMismatch "pair" badArg
 car badArgList = throwError $ NumArgs 1 badArgList
 
 cdr :: [LispVal] -> ThrowsError LispVal
-cdr [LispList (x:xs)] = return $ LispList xs
-cdr [LispDottedList [xs] x] = return x
+cdr [LispList (_:xs)] = return $ LispList xs
+cdr [LispDottedList [_] x] = return x
 cdr [LispDottedList (_:xs) x] = return $ LispDottedList xs x
 cdr [badArg] = throwError $ TypeMismatch "pair" badArg
 cdr badArgList = throwError $ NumArgs 1 badArgList
@@ -112,8 +118,9 @@ eqv [(LispList arg1), (LispList arg2)] = return $ LispBool $
   (length arg1 == length arg2) &&
   (and $ map eqvPair $ zip arg1 arg2)
   where eqvPair (x1, x2) = case eqv [x1, x2] of
-                             Left err -> False
                              Right (LispBool val) -> val
+                             _ -> False
+
 eqv [_,_] = return $ LispBool False
 eqv badArgList = throwError $ NumArgs 2 badArgList
 
@@ -126,9 +133,6 @@ unpackEquals arg1 arg2 (AnyUnpacker unpacker) =
      return $ unpacked1 == unpacked2
 -- liftM (liftM (==) (unpacker arg1)) (unpacker arg2)
   `catchError` (const $ return False)
-
-unLispValBool :: LispVal -> Bool
-unLispValBool (LispBool x) = x
 
 tupToArr :: (a,a) -> [a]
 tupToArr (a,b) = [a,b]

@@ -1,8 +1,29 @@
-module Error.LispError where
+module Schemer.Types where
 
 import Control.Monad.Except
-import Types.LispVal
 import Text.ParserCombinators.Parsec hiding ( spaces )
+
+data LispVal = LispAtom String
+             | LispList [LispVal]
+             | LispDottedList [LispVal] LispVal
+             | LispNumber Integer
+             | LispString String
+             | LispBool Bool
+
+showVal :: LispVal -> String
+showVal (LispString contents) = "\"" ++ contents ++ "\""
+showVal (LispAtom name) = name
+showVal (LispNumber contents) = show contents
+showVal (LispBool True) = "#t"
+showVal (LispBool False) = "#f"
+showVal (LispList contents) = "(" ++ unwordsList contents ++ ")"
+showVal (LispDottedList head tail) = "(" ++ unwordsList head ++ " . " ++
+                                 showVal tail ++ ")"
+
+unwordsList :: [LispVal] -> String
+unwordsList = unwords . map showVal
+
+instance Show LispVal where show = showVal
 
 
 data LispError = NumArgs Integer [LispVal]
@@ -23,16 +44,15 @@ showError (TypeMismatch expected found) = "Invalid Type: expected " ++
                                           expected ++
                                           ", found " ++ show found
 showError (Parser parseErr) = "Parse error at " ++ show parseErr
+showError (Default msg) = "An error has occurred: " ++ msg
 
 instance Show LispError where show = showError
 
---instance Error LispError where
---  noMsg = Default "An error has occurred"
---  strMsg = Default
-
 type ThrowsError = Either LispError
 
+trapError :: (Show a, MonadError a m) => m String -> m String
 trapError action = catchError action (return . show)
 
 extractValue :: ThrowsError a -> a
 extractValue (Right val) = val
+extractValue _ = undefined
