@@ -7,6 +7,7 @@ data LispVal = LispAtom String
              | LispList [LispVal]
              | LispDottedList [LispVal] LispVal
              | LispNumber Integer
+             | LispFloat Float
              | LispString String
              | LispBool Bool
 
@@ -14,6 +15,7 @@ showVal :: LispVal -> String
 showVal (LispString contents) = "\"" ++ contents ++ "\""
 showVal (LispAtom name) = name
 showVal (LispNumber contents) = show contents
+showVal (LispFloat contents) = show contents
 showVal (LispBool True) = "#t"
 showVal (LispBool False) = "#f"
 showVal (LispList contents) = "(" ++ unwordsList contents ++ ")"

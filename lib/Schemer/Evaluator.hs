@@ -6,10 +6,10 @@ import Control.Monad ((>=>))
 import Schemer.Types
 import Schemer.Primitives
 
-
 eval :: LispVal -> ThrowsError LispVal
 eval val@(LispString _) = return val
 eval val@(LispNumber _) = return val
+eval val@(LispFloat _) = return val
 eval val@(LispBool _) = return val
 eval val@(LispAtom _) = return val
 eval (LispList [LispAtom "quote", val]) = return val

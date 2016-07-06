@@ -5,6 +5,7 @@ import Control.Monad.Except (throwError, catchError)
 import Control.Monad
 
 import Schemer.Types
+import Schemer.String
 
 
 primitives :: [(String, [LispVal] -> ThrowsError LispVal)]
@@ -31,6 +32,8 @@ primitives = [("+", numericBinop (+)),
               ("string<?", strBoolBinop (<)),
               ("string<=?", strBoolBinop (<=)),
               ("string>=?", strBoolBinop (>=)),
+              ("string-length", stringLength),
+              ("string-ref", stringRef),
               ("car", car),
               ("cdr", cdr),
               ("cons", cons),
@@ -39,8 +42,9 @@ primitives = [("+", numericBinop (+)),
               ("equal?", equal)]
 
 numericBinop :: (Integer -> Integer -> Integer) -> [LispVal] -> ThrowsError LispVal
-numericBinop _ singleVal@[_] = throwError $ NumArgs 2 singleVal
-numericBinop op params = mapM unpackNum params >>= return . LispNumber . foldl1 op
+numericBinop op params | length params == 2 =
+    mapM unpackNum params >>= return . LispNumber . foldl1 op
+numericBinop _ params = throwError $ NumArgs 2 params
 
 unpackNum :: LispVal -> ThrowsError Integer
 unpackNum (LispNumber n) = return n
@@ -154,4 +158,3 @@ equal [arg1, arg2] = do
   return $ LispBool $ (primitiveEquals || let (LispBool x) = eqvEquals in x)
 
 equal badArgList = throwError $ NumArgs 2 badArgList
-

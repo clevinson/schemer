@@ -4,7 +4,8 @@ import Control.Monad
 import Control.Monad.Except (throwError)
 
 import Schemer.Types
-import Text.ParserCombinators.Parsec hiding ( spaces )
+import Text.ParserCombinators.Parsec (Parser, parse, oneOf, skipMany1, many, many1, noneOf, sepBy, endBy, try, (<|>))
+import Text.ParserCombinators.Parsec (char, letter, digit, space)
 
 symbol :: Parser Char
 symbol = oneOf "!$%&|*+-/:<=?>@^_~#"
@@ -43,9 +44,13 @@ parseAtom = do first <- letter <|> symbol
 
 parseNumber :: Parser LispVal
 parseNumber = liftM (LispNumber . read) $ many1 digit
--- parseNumber = many1 digit >>= return . LispNumber . read
--- parseNumber = do num <- many1 digit
---                  return $ (LispNumber . read) num
+
+parseFloat :: Parser LispVal
+parseFloat =
+    do head <- many1 digit
+       dot <- char '.'
+       tail <- many1 digit
+       return $ LispFloat $ read (head ++ [dot] ++ tail)
 
 parseList :: Parser LispVal
 parseList = liftM LispList $ sepBy parseExpr spaces
@@ -65,6 +70,7 @@ parseQuoted = do char '\''
 parseExpr :: Parser LispVal
 parseExpr = parseAtom
           <|> parseString
+          <|> try parseFloat
           <|> parseNumber
           <|> parseQuoted
           <|> do char '('

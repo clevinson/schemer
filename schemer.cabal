@@ -20,8 +20,11 @@ library
                     , Schemer.Evaluator
                     , Schemer.Primitives
                     , Schemer.Parser
+                    , Schemer.String
+                    , Schemer.Repl
   build-depends:      base
                     , parsec
+                    , haskeline
                     , mtl
 
 executable schemer

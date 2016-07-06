@@ -1,14 +1,13 @@
 module Main where
 
-import Control.Monad
 import System.Environment
-
-
-import Schemer.Types
-import Schemer.Parser
-import Schemer.Evaluator
+import Schemer.Repl
 
 main :: IO ()
 main = do args <- getArgs
-          evaled <- return $ liftM show $ readExpr (args !! 0) >>= eval
-          putStrLn $ extractValue $ trapError evaled
+          case length args of
+              0 -> runRepl
+              1 -> putStrLn (evalString $ args !! 0)
+              _ -> putStrLn "Schemer takes only 0 or 1 argument"
+
+
