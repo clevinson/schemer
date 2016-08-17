@@ -22,10 +22,12 @@ library
                     , Schemer.Parser
                     , Schemer.String
                     , Schemer.Repl
+                    , Schemer.Variables
   build-depends:      base
                     , parsec
                     , haskeline
                     , mtl
+                    , transformers
 
 executable schemer
   hs-source-dirs:      src

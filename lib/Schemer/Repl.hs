@@ -2,23 +2,24 @@ module Schemer.Repl where
 
 import System.Console.Haskeline
 import Control.Monad (liftM)
+import Control.Monad.IO.Class (liftIO)
 
-import Schemer.Types (extractValue, trapError)
 import Schemer.Parser (readExpr)
 import Schemer.Evaluator (eval)
+import Schemer.Variables
 
-evalString :: String -> String
-evalString expr = extractValue $ trapError (liftM show $ readExpr expr >>= eval)
+evalString :: Env -> String -> IO String
+evalString env expr = runIOThrows $ liftM show $ (liftThrows $ readExpr expr) >>= eval env
 
 runRepl :: IO ()
-runRepl = runInputT defaultSettings loop
+runRepl = nullEnv >>= (runInputT defaultSettings) . loop
     where
-        loop :: InputT IO ()
-        loop = do
+        loop :: Env -> InputT IO ()
+        loop env = do
             minput <- getInputLine "🍂  "
             case minput of
                  Nothing -> return ()
                  Just "quit" -> return ()
-                 Just "" -> loop
-                 Just input -> do outputStrLn $ evalString input
-                                  loop
+                 Just "" -> loop env
+                 Just input -> do outputStrLn =<< (liftIO $ evalString env input)
+                                  loop env
