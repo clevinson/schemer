@@ -1,9 +1,9 @@
 module Schemer.Evaluator where
 
 import Control.Monad.Except (throwError)
-import Control.Monad()
+import Control.Monad (liftM)
 import Control.Monad ((>=>))
-
+import Control.Monad.IO.Class (liftIO)
 
 import Schemer.Types
 import Schemer.Primitives
@@ -26,11 +26,25 @@ eval env (LispList (LispAtom "cond" : condExprs)) = cond env condExprs
 eval env (LispList (LispAtom "case" : keyExpr : clauses)) = lispCase env keyExpr clauses
 eval env (LispList [LispAtom "set!", LispAtom var, form]) =
     eval env form >>= setVar env var
-eval env (LispList [LispAtom "define!", LispAtom var, form]) =
+eval env (LispList [LispAtom "define", LispAtom var, form]) =
     eval env form >>= defineVar env var
-eval env (LispList (LispAtom func : args)) = mapM (eval env) args >>= liftThrows . apply func
-eval _ badForm = throwError $ BadSpecialForm "Unrecognized special form" badForm
+eval env (LispList (LispAtom "define" : LispList (LispAtom var : params) : body)) =
+    makeNormalFunc env params body >>= defineVar env var
+eval env (LispList (LispAtom "define" : LispDottedList (LispAtom var : params) varargs : body)) =
+    makeVarArgs varargs env params body >>= defineVar env var
+eval env (LispList (LispAtom "lambda" : LispList params : body)) =
+    makeNormalFunc env params body
+eval env (LispList (LispAtom "lambda" : LispDottedList params varargs : body)) =
+    makeVarArgs varargs env params body
+eval env (LispList (LispAtom "lambda" : varargs@(LispAtom _) : body)) =
+    makeVarArgs varargs env [] body
+--eval env (LispList (func : args)) = mapM (eval env) args >>= apply func
+eval env (LispList (function : args)) = do
+    func <- eval env function
+    argVals <- mapM (eval env) args
+    apply func argVals
 
+eval _ badForm = throwError $ BadSpecialForm "Unrecognized special form" badForm
 
 cond :: Env -> [LispVal] -> IOThrowsError LispVal
 cond env [LispList (LispAtom "else" : elseExpr)] = lastEval env elseExpr
@@ -62,7 +76,26 @@ lastEval _ [] = throwError $ Default "Code error. list cannot be empty yo!"
 lastEval env [x] = eval env x
 lastEval env (x:xs) = eval env x >> lastEval env xs
 
-apply :: String -> [LispVal] -> ThrowsError LispVal
-apply func args = maybe (throwError $ NotFunction "Unrecognied primitive function args" func)
-                        ($ args)
-                        (lookup func primitives)
+apply :: LispVal -> [LispVal] -> IOThrowsError LispVal
+apply (PrimitiveFunc func) args = liftThrows $ func args
+apply (Func params varargs body closure) args =
+  if num params /= num args && varargs == Nothing
+    then throwError $ NumArgs (num args) args
+    else (liftIO $ bindVars closure $ zip params args) >>= bindVarArgs varargs >>= evalBody
+  where remainingArgs = drop (length params) args
+        num = toInteger . length
+        evalBody env = liftM last $ mapM (eval env) body
+        bindVarArgs arg env = case arg of
+          Just argName -> liftIO $ bindVars env [(argName, LispList $ remainingArgs)]
+          Nothing -> return env
+apply func _ = throwError $ NotFunction "Unrecognized function type" (show func)
+
+makeFunc :: Maybe String -> Env -> [LispVal] -> [LispVal] -> IOThrowsError LispVal
+makeFunc varargs env params body = return $ Func (map showVal params) varargs body env
+
+makeNormalFunc :: Env -> [LispVal] -> [LispVal] -> IOThrowsError LispVal
+makeNormalFunc = makeFunc Nothing
+
+
+makeVarArgs :: LispVal -> Env -> [LispVal] -> [LispVal] -> IOThrowsError LispVal
+makeVarArgs = makeFunc . Just . showVal

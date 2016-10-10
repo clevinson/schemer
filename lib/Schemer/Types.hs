@@ -1,6 +1,7 @@
 module Schemer.Types where
 
 import Control.Monad.Except
+import Data.IORef
 import Text.ParserCombinators.Parsec hiding ( spaces )
 
 data LispVal = LispAtom String
@@ -10,6 +11,9 @@ data LispVal = LispAtom String
              | LispFloat Float
              | LispString String
              | LispBool Bool
+             | PrimitiveFunc ([LispVal] -> ThrowsError LispVal)
+             | Func { params :: [String], vararg :: (Maybe String),
+                      body :: [LispVal], closure :: Env }
 
 showVal :: LispVal -> String
 showVal (LispString contents) = "\"" ++ contents ++ "\""
@@ -21,6 +25,12 @@ showVal (LispBool False) = "#f"
 showVal (LispList contents) = "(" ++ unwordsList contents ++ ")"
 showVal (LispDottedList head tail) = "(" ++ unwordsList head ++ " . " ++
                                  showVal tail ++ ")"
+showVal (PrimitiveFunc _) = "<primitive>"
+showVal (Func {params = args, vararg = varargs, body = _, closure = _}) =
+  "(lambda (" ++ unwords (map show args) ++
+    (case varargs of
+      Nothing -> ""
+      Just arg -> " . " ++ arg) ++ ") ...)"
 
 unwordsList :: [LispVal] -> String
 unwordsList = unwords . map showVal
@@ -58,3 +68,5 @@ trapError action = catchError action (return . show)
 extractValue :: ThrowsError a -> a
 extractValue (Right val) = val
 extractValue _ = undefined
+
+type Env = IORef [(String, IORef LispVal)]

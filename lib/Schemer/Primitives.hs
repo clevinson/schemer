@@ -6,6 +6,7 @@ import Control.Monad
 
 import Schemer.Types
 import Schemer.String
+import Schemer.Variables
 
 
 primitives :: [(String, [LispVal] -> ThrowsError LispVal)]
@@ -158,3 +159,7 @@ equal [arg1, arg2] = do
   return $ LispBool $ (primitiveEquals || let (LispBool x) = eqvEquals in x)
 
 equal badArgList = throwError $ NumArgs 2 badArgList
+
+primitiveBindings :: IO Env
+primitiveBindings = nullEnv >>= (flip bindVars $ map makePrimitiveFunc primitives)
+  where makePrimitiveFunc (var, func) = (var, PrimitiveFunc func)

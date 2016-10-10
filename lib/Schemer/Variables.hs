@@ -5,8 +5,6 @@ import Schemer.Types
 import Control.Monad.Trans()
 import Control.Monad.Except
 
-type Env = IORef [(String, IORef LispVal)]
-
 nullEnv :: IO Env
 nullEnv = newIORef []
 

@@ -7,12 +7,14 @@ import Control.Monad.IO.Class (liftIO)
 import Schemer.Parser (readExpr)
 import Schemer.Evaluator (eval)
 import Schemer.Variables
+import Schemer.Types
+import Schemer.Primitives
 
 evalString :: Env -> String -> IO String
 evalString env expr = runIOThrows $ liftM show $ (liftThrows $ readExpr expr) >>= eval env
 
 runRepl :: IO ()
-runRepl = nullEnv >>= (runInputT defaultSettings) . loop
+runRepl = primitiveBindings >>= (runInputT defaultSettings) . loop
     where
         loop :: Env -> InputT IO ()
         loop env = do
