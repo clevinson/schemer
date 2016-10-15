@@ -1,22 +1,12 @@
 module Schemer.Variables where
 
-import Data.IORef
-import Schemer.Types
-import Control.Monad.Trans()
 import Control.Monad.Except
+import Data.IORef
+
+import Schemer.Types
 
 nullEnv :: IO Env
 nullEnv = newIORef []
-
-
-type IOThrowsError = ExceptT LispError IO
-
-liftThrows :: ThrowsError a -> IOThrowsError a
-liftThrows (Left err) = throwError err
-liftThrows (Right val) = return val
-
-runIOThrows :: IOThrowsError String  -> IO String
-runIOThrows action = runExceptT (trapError action) >>= return . extractValue
 
 isBound :: Env -> String -> IO Bool
 isBound envRef var = readIORef envRef >>= return . maybe False (const True) . lookup var

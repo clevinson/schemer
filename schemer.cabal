@@ -19,10 +19,11 @@ library
   exposed-modules:    Schemer.Types
                     , Schemer.Evaluator
                     , Schemer.Primitives
+                    , Schemer.IOPrimitives
                     , Schemer.Parser
                     , Schemer.String
-                    , Schemer.Repl
                     , Schemer.Variables
+                    , Schemer.Runner
   build-depends:      base
                     , parsec
                     , haskeline

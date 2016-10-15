@@ -1,6 +1,8 @@
 module Schemer.Types where
 
+import Control.Monad.Trans()
 import Control.Monad.Except
+import System.IO
 import Data.IORef
 import Text.ParserCombinators.Parsec hiding ( spaces )
 
@@ -12,6 +14,8 @@ data LispVal = LispAtom String
              | LispString String
              | LispBool Bool
              | PrimitiveFunc ([LispVal] -> ThrowsError LispVal)
+             | IOFunc ([LispVal] -> IOThrowsError LispVal)
+             | Port Handle
              | Func { params :: [String], vararg :: (Maybe String),
                       body :: [LispVal], closure :: Env }
 
@@ -26,6 +30,8 @@ showVal (LispList contents) = "(" ++ unwordsList contents ++ ")"
 showVal (LispDottedList head tail) = "(" ++ unwordsList head ++ " . " ++
                                  showVal tail ++ ")"
 showVal (PrimitiveFunc _) = "<primitive>"
+showVal (IOFunc _) = "<IO primitive>"
+showVal (Port _)   = "<IO port>"
 showVal (Func {params = args, vararg = varargs, body = _, closure = _}) =
   "(lambda (" ++ unwords (map show args) ++
     (case varargs of
@@ -70,3 +76,12 @@ extractValue (Right val) = val
 extractValue _ = undefined
 
 type Env = IORef [(String, IORef LispVal)]
+
+type IOThrowsError = ExceptT LispError IO
+
+liftThrows :: ThrowsError a -> IOThrowsError a
+liftThrows (Left err) = throwError err
+liftThrows (Right val) = return val
+
+runIOThrows :: IOThrowsError String  -> IO String
+runIOThrows action = runExceptT (trapError action) >>= return . extractValue

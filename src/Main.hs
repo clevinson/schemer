@@ -1,12 +1,9 @@
 module Main where
 
 import System.Environment
-import Schemer.Repl
-import Schemer.Primitives (primitiveBindings)
+
+import Schemer.Runner (runOne, runRepl)
 
 main :: IO ()
 main = do args <- getArgs
-          case length args of
-              0 -> runRepl
-              1 -> putStrLn =<< (primitiveBindings >>= ((flip evalString) $ args !! 0))
-              _ -> putStrLn "Schemer takes only 0 or 1 argument"
+          if null args then runRepl else runOne args

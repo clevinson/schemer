@@ -14,5 +14,3 @@ stringRef [LispString str, LispNumber n]
     | otherwise                   = throwError $ Default "Index too large, at string-ref"
 stringRef [badArg1, badArg2] = throwError $ TypeMismatch "(String, Number)" (LispList [badArg1, badArg2])
 stringRef badList = throwError $ NumArgs 2 badList
-
-

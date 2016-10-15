@@ -1,6 +1,7 @@
-module Schemer.Repl where
+module Schemer.Runner where
 
 import System.Console.Haskeline
+import System.IO
 import Control.Monad (liftM)
 import Control.Monad.IO.Class (liftIO)
 
@@ -9,9 +10,21 @@ import Schemer.Evaluator (eval)
 import Schemer.Variables
 import Schemer.Types
 import Schemer.Primitives
+import Schemer.IOPrimitives
+
+primitiveBindings :: IO Env
+primitiveBindings = nullEnv >>= (flip bindVars $ map (makeFunc PrimitiveFunc) primitives
+                                               ++ map (makeFunc IOFunc) ioPrimitives)
+  where makeFunc constructor (var, func) = (var, constructor func)
 
 evalString :: Env -> String -> IO String
 evalString env expr = runIOThrows $ liftM show $ (liftThrows $ readExpr expr) >>= eval env
+
+runOne :: [String] -> IO ()
+runOne args = do
+    env <- primitiveBindings >>= flip bindVars [("args", LispList $ map LispString $ drop 1 args)]
+    (runIOThrows $ liftM show $ eval env (LispList [LispAtom "load", LispString (args !! 0)]))
+        >>= hPutStrLn stderr
 
 runRepl :: IO ()
 runRepl = primitiveBindings >>= (runInputT defaultSettings) . loop

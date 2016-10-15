@@ -6,8 +6,9 @@ import Control.Monad ((>=>))
 import Control.Monad.IO.Class (liftIO)
 
 import Schemer.Types
-import Schemer.Primitives
+import Schemer.Parser (readExprList)
 import Schemer.Variables
+import Schemer.Primitives (eqv)
 
 eval :: Env -> LispVal -> IOThrowsError LispVal
 eval _ val@(LispString _) = return val
@@ -38,12 +39,12 @@ eval env (LispList (LispAtom "lambda" : LispDottedList params varargs : body)) =
     makeVarArgs varargs env params body
 eval env (LispList (LispAtom "lambda" : varargs@(LispAtom _) : body)) =
     makeVarArgs varargs env [] body
---eval env (LispList (func : args)) = mapM (eval env) args >>= apply func
+eval env (LispList [LispAtom "load", LispString filename]) =
+    load filename >>= liftM last . mapM (eval env)
 eval env (LispList (function : args)) = do
     func <- eval env function
     argVals <- mapM (eval env) args
     apply func argVals
-
 eval _ badForm = throwError $ BadSpecialForm "Unrecognized special form" badForm
 
 cond :: Env -> [LispVal] -> IOThrowsError LispVal
@@ -88,14 +89,18 @@ apply (Func params varargs body closure) args =
         bindVarArgs arg env = case arg of
           Just argName -> liftIO $ bindVars env [(argName, LispList $ remainingArgs)]
           Nothing -> return env
+apply (IOFunc func) args = func args
 apply func _ = throwError $ NotFunction "Unrecognized function type" (show func)
 
+load :: String -> IOThrowsError [LispVal]
+load filename = (liftIO $ readFile filename) >>= liftThrows . readExprList
+
+-- Helpers for making Function types
 makeFunc :: Maybe String -> Env -> [LispVal] -> [LispVal] -> IOThrowsError LispVal
 makeFunc varargs env params body = return $ Func (map showVal params) varargs body env
 
 makeNormalFunc :: Env -> [LispVal] -> [LispVal] -> IOThrowsError LispVal
 makeNormalFunc = makeFunc Nothing
-
 
 makeVarArgs :: LispVal -> Env -> [LispVal] -> [LispVal] -> IOThrowsError LispVal
 makeVarArgs = makeFunc . Just . showVal
