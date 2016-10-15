@@ -9,8 +9,8 @@ import Schemer.Parser (readExpr)
 import Schemer.Evaluator (eval)
 import Schemer.Variables
 import Schemer.Types
-import Schemer.Primitives
-import Schemer.IOPrimitives
+import Schemer.Primitives (primitives)
+import Schemer.IOPrimitives (ioPrimitives)
 
 primitiveBindings :: IO Env
 primitiveBindings = nullEnv >>= (flip bindVars $ map (makeFunc PrimitiveFunc) primitives

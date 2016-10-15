@@ -77,6 +77,9 @@ lastEval _ [] = throwError $ Default "Code error. list cannot be empty yo!"
 lastEval env [x] = eval env x
 lastEval env (x:xs) = eval env x >> lastEval env xs
 
+load :: String -> IOThrowsError [LispVal]
+load filename = (liftIO $ readFile filename) >>= liftThrows . readExprList
+
 apply :: LispVal -> [LispVal] -> IOThrowsError LispVal
 apply (PrimitiveFunc func) args = liftThrows $ func args
 apply (Func params varargs body closure) args =
@@ -91,9 +94,6 @@ apply (Func params varargs body closure) args =
           Nothing -> return env
 apply (IOFunc func) args = func args
 apply func _ = throwError $ NotFunction "Unrecognized function type" (show func)
-
-load :: String -> IOThrowsError [LispVal]
-load filename = (liftIO $ readFile filename) >>= liftThrows . readExprList
 
 -- Helpers for making Function types
 makeFunc :: Maybe String -> Env -> [LispVal] -> [LispVal] -> IOThrowsError LispVal

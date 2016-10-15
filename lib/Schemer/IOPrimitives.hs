@@ -56,31 +56,3 @@ readAll :: [LispVal] -> IOThrowsError LispVal
 readAll [LispString filename] = liftM LispList $ load filename
 readAll [notString] = liftThrows $ throwError (TypeMismatch "string" notString)
 readAll badArgs = liftThrows $ throwError (NumArgs 1 badArgs)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

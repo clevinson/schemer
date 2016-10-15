@@ -134,7 +134,6 @@ unpackEquals arg1 arg2 (AnyUnpacker unpacker) =
   do unpacked1 <- unpacker arg1
      unpacked2 <- unpacker arg2
      return $ unpacked1 == unpacked2
--- liftM (liftM (==) (unpacker arg1)) (unpacker arg2)
   `catchError` (const $ return False)
 
 tupToArr :: (a,a) -> [a]
